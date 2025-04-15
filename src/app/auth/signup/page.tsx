@@ -1,12 +1,27 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const router = useRouter();
 
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push('/auth/login'); 
+    }
+  };
+
+  
   return (
     <div className="min-h-screen bg-black text-green-400 font-mono flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-gray-900 p-8 rounded-lg border border-green-600 shadow-md">
@@ -29,6 +44,7 @@ export default function SignUpPage() {
           <button
             type="submit"
             className="w-full bg-green-600 text-black py-2 rounded-md font-bold hover:bg-green-500 transition"
+            onClick={handleSignUp}
           >
             Create Account
           </button>

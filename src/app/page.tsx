@@ -16,7 +16,7 @@ export default function HomePage() {
       <main className="flex flex-col items-center justify-center text-center px-4 py-20">
         <h2 className="text-4xl sm:text-5xl font-bold mb-6">Welcome to Detective</h2>
         <p className="max-w-xl text-lg text-green-300">
-          Dive into a secure environment built for digital forensics, threat analysis, and hacker-style UI exploration.
+          First tool to help find criminal and solve crime cases
         </p>
       </main>
     </div>
