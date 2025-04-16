@@ -16,7 +16,7 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      router.push('/bar'); // redirect to your main/dashboard page
+      router.push('/bar'); 
     }
   };
 

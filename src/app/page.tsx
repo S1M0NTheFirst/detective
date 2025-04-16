@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -10,13 +11,12 @@ import {
   forceCenter,
 } from 'd3-force';
 
-/** Full‑screen neural‑network backdrop — now rendered larger */
+/** Full-screen spinning neural network backdrop */
 const NeuralNetViz: React.FC<{ width: number; height: number }> = ({ width, height }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  // Generate graph once
   const { nodes, links } = useMemo(() => {
-    const N = 25; 
+    const N = 30;
     const nodes = Array.from({ length: N }, (_, i) => ({ id: i }));
     const links: { source: number; target: number }[] = [];
     for (let i = 0; i < N * 2.5; i++) {
@@ -31,44 +31,37 @@ const NeuralNetViz: React.FC<{ width: number; height: number }> = ({ width, heig
     if (!svgRef.current) return;
     const svg = select(svgRef.current).attr('viewBox', `0 0 ${width} ${height}`);
 
-    svg
-      .selectAll('line')
+    svg.selectAll('line')
       .data(links)
       .join('line')
       .attr('stroke', '#22c55e')
-      .attr('stroke-width', 1.5) // thicker lines
+      .attr('stroke-width', 1.5)
       .attr('stroke-opacity', 0.6);
 
-    svg
-      .selectAll('circle')
+    svg.selectAll('circle')
       .data(nodes)
       .join('circle')
-      .attr('r', 7) // make nodes bigger
+      .attr('r', 7)
       .attr('fill', '#10b981');
 
     const sim = forceSimulation(nodes as any)
       .alphaDecay(0.03)
       .force(
         'link',
-        forceLink(links)
-          .id((d: any) => d.id)
-          .distance(120) // more space between nodes (overall graph bigger)
+        forceLink(links).id((d: any) => d.id).distance(120)
       )
       .force('charge', forceManyBody().strength(-80))
       .force('center', forceCenter(width / 2, height / 2))
       .on('tick', () => {
-        svg
-          .selectAll('circle')
+        svg.selectAll('circle')
           .attr('cx', (d: any) => d.x!)
           .attr('cy', (d: any) => d.y!);
-        svg
-          .selectAll('line')
+        svg.selectAll('line')
           .attr('x1', (d: any) => d.source.x!)
           .attr('y1', (d: any) => d.source.y!)
           .attr('x2', (d: any) => d.target.x!)
           .attr('y2', (d: any) => d.target.y!);
-      })
-      .on('end', () => sim.stop());
+      });
 
     return () => sim.stop();
   }, [nodes, links, width, height]);
@@ -76,7 +69,7 @@ const NeuralNetViz: React.FC<{ width: number; height: number }> = ({ width, heig
   return (
     <svg
       ref={svgRef}
-      className="w-full h-full absolute inset-0 pointer-events-none transform scale-125 animate-[spin_60s_linear_infinite]" // scaled up ~25%
+      className="absolute inset-0 w-full h-full pointer-events-none transform scale-125 animate-[spin_60s_linear_infinite]"
     />
   );
 };
@@ -92,30 +85,46 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-green-400 font-mono relative overflow-hidden">
-      {size.width > 0 && <NeuralNetViz width={size.width} height={size.height} />}
-
-      <nav className="flex justify-between items-center p-6 border-b border-green-600 relative z-10">
-        <h1 className="text-2xl font-bold">Detective</h1>
-        <div className="space-x-4">
-          <Link href="/auth/login" className="hover:text-white transition">
-            Login
-          </Link>
-          <Link href="/auth/signup" className="hover:text-white transition">
-            Sign Up
-          </Link>
+    <div className="w-full h-full bg-black text-green-400 font-mono relative overflow-y-auto">
+      {/* Section 1: Hero with neural background */}
+      <section className="relative w-full h-screen overflow-hidden">
+        {size.width > 0 && <NeuralNetViz width={size.width} height={size.height} />}
+        <nav className="flex justify-between items-center p-6 border-b border-green-600 relative z-10">
+          <h1 className="text-2xl font-bold">Detective</h1>
+          <div className="space-x-4">
+            <Link href="/auth/login" className="hover:text-white transition">
+              Login
+            </Link>
+            <Link href="/auth/signup" className="hover:text-white transition">
+              Sign Up
+            </Link>
+          </div>
+        </nav>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 px-4">
+          <h2 className="text-4xl sm:text-5xl font-bold">Welcome to Detective</h2>
+          <p className="max-w-xl text-lg text-green-300 mt-4">
+            First tool to help find criminals and solve crime cases
+          </p>
         </div>
-      </nav>
+      </section>
 
-      <main className="relative z-10 text-center px-4 py-20 space-y-8">
-        <h2 className="text-4xl sm:text-5xl font-bold">Welcome to Detective</h2>
-        <p className="max-w-xl mx-auto text-lg text-green-300">
-          First tool to help find criminal and solve crime cases
-        </p>
-      </main>
+      <section className="relative w-full h-screen overflow-hidden flex justify-center items-center">
+        <div className='w-[100rem] rounded-2xl flex justify-center'>
+          <video
+          src="/eyeball.mp4"
+          autoPlay
+          loop
+          muted
+          className="inset-0 h-full rounded-3xl"
+        />
+        </div> 
+        <div className="relative z-10 flex items-center justify-center h-full px-4">
+        </div>
+      </section>
     </div>
   );
 }
 
-// After saving, Vite/Next.js HMR will refresh and show the larger network.
-// No extra packages beyond d3/d3-selection/d3-force and Tailwind are required.
+
+// Ensure to install:
+// npm install d3 d3-selection d3-force @types/d3
