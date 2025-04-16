@@ -7,9 +7,9 @@ export default function SearchPage() {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [marker, setMarker] = useState<google.maps.Marker | null>(null);
+  const [circle, setCircle] = useState<google.maps.Circle | null>(null);
   const [searchText, setSearchText] = useState("");
 
-  // Google Maps API key from environment variable
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   // Initialize the map once the Google Maps API script is available.
@@ -34,12 +34,10 @@ export default function SearchPage() {
     geocoder.geocode({ address: searchText }, (results, status) => {
       if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
         const location = results[0].geometry.location;
-
-        // Center the map on the found location.
         map.setCenter(location);
         map.setZoom(14);
 
-        // Add or update marker
+        // Update or create marker.
         if (marker) {
           marker.setPosition(location);
         } else {
@@ -49,6 +47,27 @@ export default function SearchPage() {
             animation: google.maps.Animation.DROP,
           });
           setMarker(newMarker);
+        }
+
+        // Calculate radius in meters (5 miles ≈ 8046.7 meters).
+        const radiusInMeters = 5 * 1609.34;
+        
+        // Update or create the circle overlay.
+        if (circle) {
+          circle.setCenter(location);
+          circle.setRadius(radiusInMeters);
+        } else {
+          const newCircle = new google.maps.Circle({
+            map,
+            center: location,
+            radius: radiusInMeters,
+            strokeColor: "#FF0000",
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: "#FF0000",
+            fillOpacity: 0.35,
+          });
+          setCircle(newCircle);
         }
       } else {
         alert("Address not found: " + status);
@@ -112,7 +131,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   header: {
     width: "100%",
-    backgroundColor: "#000", // Dark header
+    backgroundColor: "#000",
     padding: "1rem",
     boxSizing: "border-box",
     position: "sticky",
@@ -123,7 +142,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: 0,
     fontSize: "1.5rem",
     marginBottom: "0.5rem",
-    color: "#fff", // White text
+    color: "#fff",
   },
   headerControls: {
     display: "flex",
