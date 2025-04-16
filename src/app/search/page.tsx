@@ -9,6 +9,8 @@ export default function SearchPage() {
   const [marker, setMarker] = useState<google.maps.Marker | null>(null);
   const [circle, setCircle] = useState<google.maps.Circle | null>(null);
   const [searchText, setSearchText] = useState("");
+  
+  const [selectedRange, setSelectedRange] = useState<number>(5); 
 
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -49,9 +51,9 @@ export default function SearchPage() {
           setMarker(newMarker);
         }
 
-        // Calculate radius in meters (5 miles ≈ 8046.7 meters).
-        const radiusInMeters = 5 * 1609.34;
-        
+        // Convert the selected range (in miles) to meters.
+        const radiusInMeters = selectedRange * 1609.34;
+
         // Update or create the circle overlay.
         if (circle) {
           circle.setCenter(location);
@@ -106,6 +108,19 @@ export default function SearchPage() {
               <option value="fraud">Fraud</option>
               {/* Add more options as needed */}
             </select>
+            <div style={styles.rangeContainer}>
+              <label style={styles.rangeLabel}>Range:</label>
+              <select
+                style={styles.rangeSelect}
+                value={selectedRange}
+                onChange={(e) => setSelectedRange(parseFloat(e.target.value))}
+              >
+                <option value={0.75}>0.75 miles</option>
+                <option value={1}>1 mile</option>
+                <option value={2}>2 miles</option>
+                <option value={5}>5 miles</option>
+              </select>
+            </div>
           </form>
         </header>
 
@@ -127,7 +142,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: "column",
     width: "100%",
     minHeight: "100vh",
-    backgroundColor: "#111", // Dark background
+    backgroundColor: "#111",
   },
   header: {
     width: "100%",
@@ -148,6 +163,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "flex",
     gap: "1rem",
     alignItems: "center",
+    flexWrap: "wrap",
   },
   searchInput: {
     flex: 1,
@@ -166,6 +182,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: "pointer",
   },
   filterSelect: {
+    padding: "0.5rem",
+    fontSize: "1rem",
+    backgroundColor: "#222",
+    color: "#eee",
+    border: "1px solid #444",
+  },
+  rangeContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+  },
+  rangeLabel: {
+    color: "#fff",
+    fontSize: "1rem",
+  },
+  rangeSelect: {
     padding: "0.5rem",
     fontSize: "1rem",
     backgroundColor: "#222",
