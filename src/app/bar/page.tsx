@@ -20,7 +20,7 @@ export default function MainPage() {
       <Navbar />
       <main className="p-6 space-y-4 max-w-3xl mx-auto">
         <div className="bg-gray-800 p-4 rounded-lg min-h-[400px] shadow-inner">
-          <p className="text-gray-500 text-center">Chat area (messages will show here)</p>
+          <p className="text-gray-500 text-center">Video Section</p>
         </div>
 
         <div className="flex flex-col gap-2">
