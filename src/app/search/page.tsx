@@ -79,7 +79,6 @@ export default function SearchPage() {
 
   return (
     <>
-      {/* Load Google Maps JavaScript API */}
       <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}`}
         strategy="beforeInteractive"

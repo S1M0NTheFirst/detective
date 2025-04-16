@@ -16,7 +16,7 @@ const NeuralNetViz: React.FC<{ width: number; height: number }> = ({ width, heig
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   const { nodes, links } = useMemo(() => {
-    const N = 30;
+    const N = 25;
     const nodes = Array.from({ length: N }, (_, i) => ({ id: i }));
     const links: { source: number; target: number }[] = [];
     for (let i = 0; i < N * 2.5; i++) {
@@ -87,9 +87,9 @@ export default function HomePage() {
   return (
     <div className="w-full h-full bg-black text-green-400 font-mono relative overflow-y-auto">
       {/* Section 1: Hero with neural background */}
-      <section className="relative w-full h-screen overflow-hidden">
+      <section className="relative w-full h-screen overflow-hidden z-40">
         {size.width > 0 && <NeuralNetViz width={size.width} height={size.height} />}
-        <nav className="flex justify-between items-center p-6 border-b border-green-600 relative z-10">
+        <nav className="flex justify-between items-center p-6 border-b border-green-600 relative z-50">
           <h1 className="text-2xl font-bold">Detective</h1>
           <div className="space-x-4">
             <Link href="/auth/login" className="hover:text-white transition">
@@ -107,7 +107,6 @@ export default function HomePage() {
           </p>
         </div>
       </section>
-
       <section className="relative w-full h-screen overflow-hidden flex justify-center items-center">
         <div className='w-[100rem] rounded-2xl flex justify-center'>
           <video
