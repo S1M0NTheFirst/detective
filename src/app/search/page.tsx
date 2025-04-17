@@ -2,19 +2,28 @@
 
 import React, { useRef, useEffect, useState, FormEvent } from "react";
 import Script from "next/script";
+import { supabase } from "@/lib/supabaseClient";  
+
+type Criminal = {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+};
 
 export default function SearchPage() {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [marker, setMarker] = useState<google.maps.Marker | null>(null);
   const [circle, setCircle] = useState<google.maps.Circle | null>(null);
+
+  const [criminals, setCriminals] = useState<Criminal[]>([]);
   const [searchText, setSearchText] = useState("");
-  
-  const [selectedRange, setSelectedRange] = useState<number>(5); 
+  const [selectedRange, setSelectedRange] = useState<number>(2);
 
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  // Initialize the map once the Google Maps API script is available.
+
   useEffect(() => {
     if (window.google && !map && mapRef.current) {
       const defaultCenter = { lat: 34.0135, lng: -118.281 };
@@ -26,67 +35,136 @@ export default function SearchPage() {
     }
   }, [map]);
 
-  // Function to perform search using the Google Geocoder.
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("criminal_info")
+        .select("id,name,address");
+      if (error) {
+        console.error("Supabase fetch error:", error);
+        return;
+      }
+
+      const enriched = await Promise.all(
+        data!.map(async (c) => {
+          const res = await fetch("/api/geocode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ address: c.address }),
+          });
+          const json = await res.json();
+          return {
+            id: c.id,
+            name: c.name,
+            address: c.address,
+            lat: json.lat,
+            lng: json.lng,
+          } as Criminal;
+        })
+      );
+
+      setCriminals(enriched.filter((c) => c.lat && c.lng));
+    })();
+  }, []);
+
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-
     if (!searchText || !window.google || !map) return;
 
     const geocoder = new google.maps.Geocoder();
     geocoder.geocode({ address: searchText }, (results, status) => {
-      if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
-        const location = results[0].geometry.location;
-        map.setCenter(location);
-        map.setZoom(14);
-
-        // Update or create marker.
-        if (marker) {
-          marker.setPosition(location);
-        } else {
-          const newMarker = new google.maps.Marker({
-            map,
-            position: location,
-            animation: google.maps.Animation.DROP,
-          });
-          setMarker(newMarker);
-        }
-
-        // Convert the selected range (in miles) to meters.
-        const radiusInMeters = selectedRange * 1609.34;
-
-        // Update or create the circle overlay.
-        if (circle) {
-          circle.setCenter(location);
-          circle.setRadius(radiusInMeters);
-        } else {
-          const newCircle = new google.maps.Circle({
-            map,
-            center: location,
-            radius: radiusInMeters,
-            strokeColor: "#FF0000",
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
-            fillColor: "#FF0000",
-            fillOpacity: 0.35,
-          });
-          setCircle(newCircle);
-        }
-      } else {
+      if (status !== google.maps.GeocoderStatus.OK || !results?.[0]) {
         alert("Address not found: " + status);
+        return;
       }
+
+      const location = results[0].geometry.location;
+      map.setCenter(location);
+      map.setZoom(14);
+
+      const radiusInMeters = selectedRange * 1609.34;
+
+      // draw or update circle
+      if (circle) {
+        circle.setCenter(location);
+        circle.setRadius(radiusInMeters);
+      } else {
+        const newCircle = new google.maps.Circle({
+          map,
+          center: location,
+          radius: radiusInMeters,
+          strokeColor: "#FF0000",
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: "#FF0000",
+          fillOpacity: 0.35,
+        });
+        setCircle(newCircle);
+      }
+
+      // filter
+      const centreLatLng = new google.maps.LatLng(
+        location.lat(),
+        location.lng()
+      );
+      const inRange = criminals.filter((c) => {
+        const pt = new google.maps.LatLng(c.lat, c.lng);
+        const dist = google.maps.geometry.spherical.computeDistanceBetween(
+          centreLatLng,
+          pt
+        );
+        return dist <= radiusInMeters;
+      });
+      console.log("Criminals in range:", inRange);
+
+      // ─── Drop markers with boxed InfoWindows ───
+      inRange.forEach((c) => {
+        const marker = new google.maps.Marker({
+          map,
+          position: { lat: c.lat, lng: c.lng },
+          title: c.name,
+        });
+
+        const infoHtml = `
+          <div style="
+            background: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            max-width: 220px;
+            font-family: Arial, sans-serif;
+          ">
+            <h3 style="
+              margin: 0 0 6px;
+              font-size: 1.1rem;
+              color: #222;
+            ">${c.name}</h3>
+            <p style="
+              margin: 0;
+              font-size: 0.9rem;
+              color: #555;
+            ">${c.address}</p>
+          </div>
+        `;
+
+        const infoWindow = new google.maps.InfoWindow({
+          content: infoHtml,
+        });
+
+        marker.addListener("click", () => infoWindow.open({ anchor: marker, map }));
+      });
     });
   };
 
   return (
     <>
+
       <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}`}
+        src={`https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=geometry`}
         strategy="beforeInteractive"
       />
 
-      {/* Page Container */}
       <div style={styles.pageContainer}>
-        {/* Header Section */}
         <header style={styles.header}>
           <h1 style={styles.headerTitle}>Crime Search</h1>
           <form onSubmit={handleSearch} style={styles.headerControls}>
@@ -100,13 +178,6 @@ export default function SearchPage() {
             <button type="submit" style={styles.searchButton}>
               Search
             </button>
-            <select style={styles.filterSelect}>
-              <option value="">Filter by crime type</option>
-              <option value="theft">Theft</option>
-              <option value="assault">Assault</option>
-              <option value="fraud">Fraud</option>
-              {/* Add more options as needed */}
-            </select>
             <div style={styles.rangeContainer}>
               <label style={styles.rangeLabel}>Range:</label>
               <select
@@ -123,18 +194,14 @@ export default function SearchPage() {
           </form>
         </header>
 
-        {/* Main Content */}
         <main style={styles.mainContent}>
-          <div ref={mapRef} style={styles.mapContainer}>
-            {/* The Google Map will be rendered here */}
-          </div>
+          <div ref={mapRef} style={styles.mapContainer} />
         </main>
       </div>
     </>
   );
 }
 
-// Inline styles with a "secret agent" dark theme.
 const styles: { [key: string]: React.CSSProperties } = {
   pageContainer: {
     display: "flex",
@@ -179,13 +246,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: "#fff",
     border: "none",
     cursor: "pointer",
-  },
-  filterSelect: {
-    padding: "0.5rem",
-    fontSize: "1rem",
-    backgroundColor: "#222",
-    color: "#eee",
-    border: "1px solid #444",
   },
   rangeContainer: {
     display: "flex",
