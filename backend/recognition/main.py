@@ -1,63 +1,88 @@
-import face_recognition
 import os
 import cv2
+import face_recognition
 
-faces = "know"
+# ─── CONFIG ─────────────────────────────────────────────────────────────
+VIDEO_PATH        = "myvideo.mp4"   # path to your .mp4
+KNOWN_FACES_DIR   = "know"                  # top‑level folder with subfolders per person
+TOLERANCE         = 0.5
+FRAME_THICKNESS   = 3
+FONT_THICKNESS    = 2
+MODEL             = "hog"                   # “hog” is faster, “cnn” is more accurate
+# ────────────────────────────────────────────────────────────────────────
 
-tolerance = 0.5
-frame_thickness = 3
-font_thickness = 2
-model = "cnn"
+# 1) load known faces
+known_encodings = []
+known_names     = []
 
-video = cv2.VideoCapture(1)
- 
-known_face = []
-known_names = []
-
-for name in os.listdir(faces):
-    person_dir = os.path.join(faces, name)
-
-    # Skip anything that isn't a directory
+for person_name in os.listdir(KNOWN_FACES_DIR):
+    person_dir = os.path.join(KNOWN_FACES_DIR, person_name)
     if not os.path.isdir(person_dir):
         continue
 
-    for filename in os.listdir(person_dir):
-        # (you might also want to skip hidden files here)
-        if filename.startswith('.'):
+    for img_name in os.listdir(person_dir):
+        if img_name.startswith('.'):
+            continue
+        img_path = os.path.join(person_dir, img_name)
+
+        image = face_recognition.load_image_file(img_path)
+        encs  = face_recognition.face_encodings(image)
+        if not encs:
+            print(f"[Warning] no face in {img_path}, skipping")
             continue
 
-        image_path = os.path.join(person_dir, filename)
-        image      = face_recognition.load_image_file(image_path)
-        encodings  = face_recognition.face_encodings(image)
-        if not encodings:
-            print(f"No face found in {image_path}, skipping")
-            continue
+        known_encodings.append(encs[0])
+        known_names.append(person_name)
+print(f"✔️  Loaded {len(known_encodings)} known faces.")
 
-        known_face.append(encodings[0])
-        known_names.append(name)
-print("processing unknown faces")
+# 2) open video
+cap = cv2.VideoCapture(VIDEO_PATH)
+if not cap.isOpened():
+    print("❌ Unable to open video:", VIDEO_PATH)
+    exit(1)
 
+# 3) process each frame
 while True:
-    ret,img =video.read()
-    location = face_recognition.face_locations(img, model=model)
-    encoding = face_recognition.face_encodings(img, location)
+    ret, frame = cap.read()
+    if not ret:
+        break
 
-    for face_location, face_encoding in zip(location, encoding):
-        result = face_recognition.compare_faces(known_face, face_encoding, tolerance)
-        match = None
-        if True in result:
-            match = known_names[result.index(True)]
-            print(f"Match found: {match}")
-            top_left = (face_location[3],face_location[0])
-            bottom_right = (face_location[1],face_location[2])
-            color = (0,255,0)
-            cv2.rectangle(img,top_left,bottom_right,color,frame_thickness)
+    # detect & encode
+    locations = face_recognition.face_locations(frame, model=MODEL)
+    encodings = face_recognition.face_encodings(frame, locations)
 
-            top_left = (face_location[3],face_location[2])
-            bottom_right = (face_location[1],face_location[2]+22)
-            cv2.rectangle(image,top_left,bottom_right,color,cv2.FILLED)
-            cv2.putText(img,match,(face_location[3]+10,face_location[2]+15),cv2.FONT_HERSHEY_COMPLEX,0.5,(200,200,200),font_thickness)
+    for (top, right, bottom, left), face_encoding in zip(locations, encodings):
+        matches = face_recognition.compare_faces(
+            known_encodings, face_encoding, TOLERANCE
+        )
+        name = "Unknown"
+        if True in matches:
+            name = known_names[matches.index(True)]
 
-            cv2.imshow(filename,img)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+        # draw a box
+        cv2.rectangle(frame,
+                      (left, top),
+                      (right, bottom),
+                      (0, 255, 0),
+                      FRAME_THICKNESS)
+
+        # draw a label
+        cv2.rectangle(frame,
+                      (left, bottom),
+                      (right, bottom + 22),
+                      (0, 255, 0),
+                      cv2.FILLED)
+        cv2.putText(frame,
+                    name,
+                    (left + 10, bottom + 15),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,               # fontScale
+                    (255, 255, 255),   # color
+                    FONT_THICKNESS)
+
+    cv2.imshow("Video Face Recognition", frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
