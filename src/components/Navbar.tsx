@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabaseClient';
 
 export default function Navbar() {
   const [email, setEmail] = useState<string | null>(null);
-  const pathname = usePathname();                 // ← active route
+  const pathname = usePathname();                
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -26,7 +26,7 @@ export default function Navbar() {
   const navItems = [
     { label: 'Evidence',  href: '/evidence' },
     { label: 'Search',    href: '/search' },
-    { label: 'SkyVersion', href: '/about' },
+    { label: 'SkyVision', href: '/skyvision' },
     { label: 'Statistic', href: '/statistics' },
   ];
 
