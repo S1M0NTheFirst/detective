@@ -86,7 +86,6 @@ export default function HomePage() {
 
   return (
     <div className="w-full h-full bg-black text-green-400 font-mono relative overflow-y-auto">
-      {/* Section 1: Hero with neural background */}
       <section className="relative w-full h-screen overflow-hidden z-40">
         {size.width > 0 && <NeuralNetViz width={size.width} height={size.height} />}
         <nav className="flex justify-between items-center p-6 border-b border-green-600 relative z-50">
@@ -118,12 +117,10 @@ export default function HomePage() {
         />
         </div> 
         <div className="relative z-10 flex items-center justify-center h-full px-4">
+          
         </div>
       </section>
     </div>
   );
 }
 
-
-// Ensure to install:
-// npm install d3 d3-selection d3-force @types/d3
