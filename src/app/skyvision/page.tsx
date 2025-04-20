@@ -128,14 +128,26 @@ function UploadLogPane() {
 }
 
 
+
+
 function RealtimePane() {
+
+  const streamUrl = `${process.env.NEXT_PUBLIC_API_URL}/video_feed`
+
   return (
     <section className="border border-green-600 rounded-lg p-6 flex flex-col items-center justify-center h-96">
-      <p className="text-green-300 mb-4">
-        Realtime camera placeholder
-      </p>
+
+      <img
+        src={streamUrl}
+        alt="Live face recognition"
+        className="max-w-full h-auto"
+      />
+
+
       <p className="text-xs text-green-500 mt-4">
+        Streaming from {streamUrl}
       </p>
     </section>
-  );
+  )
 }
+

@@ -1,3 +1,6 @@
+
+# run with python -m uvicorn api.app:app --reload in /backend
+
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
