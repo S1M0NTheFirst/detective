@@ -5,6 +5,17 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+
+import os
+from pathlib import Path
+from dotenv import load_dotenv, find_dotenv
+env_path = find_dotenv(filename=".env.local")
+load_dotenv(env_path)
+
+# now you can do:
+SUPA_URL = os.getenv("SUPA_URL")
+SUPA_KEY = os.getenv("SUPA_KEY")
+
 # this will find backend/source/main.py thanks to __init__.py
 from source.main import gen_frames
 
