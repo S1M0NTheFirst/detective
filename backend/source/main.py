@@ -3,9 +3,15 @@
 import cv2
 from .simple_facerec import SimpleFacerec   
 
-# initialize once
+# at the top of backend/source/main.py
+from pathlib import Path
+
+BASE = Path(__file__).parent     # backend/source
+IMGS = BASE / "images"          # backend/source/images
+
 sfr = SimpleFacerec()
-sfr.load_encoding_images("images")  # path to your images folder
+sfr.load_encoding_images(str(IMGS))
+
 
 cap = cv2.VideoCapture(0)
 
