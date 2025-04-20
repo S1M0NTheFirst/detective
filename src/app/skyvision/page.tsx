@@ -131,23 +131,27 @@ function UploadLogPane() {
 
 
 function RealtimePane() {
-
-  const streamUrl = `${process.env.NEXT_PUBLIC_API_URL}/video_feed`
+  const streamUrl = `${process.env.NEXT_PUBLIC_API_URL}/video_feed`;
+  console.log("Stream URL:", streamUrl);
 
   return (
-    <section className="border border-green-600 rounded-lg p-6 flex flex-col items-center justify-center h-96">
-
+    <section
+      className="
+        border border-green-600 rounded-lg
+        w-full max-w-3xl h-96 overflow-hidden mx-auto
+      "
+    >
       <img
         src={streamUrl}
         alt="Live face recognition"
-        className="max-w-full h-auto"
+        className="w-full h-full object-cover"
+        onError={e => {
+          console.error("❌ Image failed to load", e, { streamUrl });
+        }}
       />
-
-
-      <p className="text-xs text-green-500 mt-4">
-        Streaming from {streamUrl}
-      </p>
     </section>
-  )
+  );
 }
+
+
 
