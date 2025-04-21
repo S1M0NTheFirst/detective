@@ -13,7 +13,6 @@ sfr = SimpleFacerec()
 sfr.load_encoding_images(str(IMGS))
 
 
-
 cap = cv2.VideoCapture(0)
 
 def gen_frames():

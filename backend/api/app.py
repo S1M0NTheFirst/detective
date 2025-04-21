@@ -1,35 +1,33 @@
 
-# run with python -m uvicorn api.app:app --reload in /backend
-
-from fastapi import FastAPI
+# python -m uvicorn api.app:app --reload --host 0.0.0.0 --port 8000
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 
-import os
-from pathlib import Path
-from dotenv import load_dotenv, find_dotenv
-env_path = find_dotenv(filename=".env.local")
-load_dotenv(env_path)
-
-# now you can do:
-SUPA_URL = os.getenv("SUPA_URL")
-SUPA_KEY = os.getenv("SUPA_KEY")
-
-# this will find backend/source/main.py thanks to __init__.py
-from source.main import gen_frames
+from source.main import gen_frames  # yields raw jpg bytes
 
 app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+def mjpeg_generator(background_tasks: BackgroundTasks):
+    """
+    Wrap each raw JPEG from gen_frames() in the multipart headers
+    so <img> can render it as an MJPEG stream.
+    """
+    for frame in gen_frames():
+        # enqueue_alerts here if you still need them…
+        yield b"--frame\r\n"
+        yield b"Content-Type: image/jpeg\r\n\r\n"
+        yield frame
+        yield b"\r\n"
 
 @app.get("/video_feed")
-def video_feed():
+def video_feed(background_tasks: BackgroundTasks):
+    """
+    Streams a proper multipart/x-mixed-replace MJPEG response.
+    """
     return StreamingResponse(
-        (b"--frame\r\n"
-         b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
-         for frame in gen_frames()),
+        mjpeg_generator(background_tasks),
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
