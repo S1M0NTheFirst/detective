@@ -1,4 +1,4 @@
-
+#source .venv/bin/activate
 # python -m uvicorn api.app:app --reload --host 0.0.0.0 --port 8000
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import StreamingResponse
