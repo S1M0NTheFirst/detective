@@ -2,14 +2,16 @@
 
 import React, { useRef, useEffect, useState, FormEvent } from "react";
 import Script from "next/script";
-import { supabase } from "@/lib/supabaseClient";  
+import { supabase } from "@/lib/supabaseClient";
 
+// Extend Criminal to include the precomputed imageUrl
 type Criminal = {
   id: string;
   name: string;
   address: string;
   lat: number;
   lng: number;
+  imageUrl: string;   // direct URL from your DB
 };
 
 export default function SearchPage() {
@@ -17,13 +19,14 @@ export default function SearchPage() {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [circle, setCircle] = useState<google.maps.Circle | null>(null);
 
+  // now storing the imageUrl on each record
   const [criminals, setCriminals] = useState<Criminal[]>([]);
   const [searchText, setSearchText] = useState("");
   const [selectedRange, setSelectedRange] = useState<number>(2);
 
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-
+  // Initialize Google Map
   useEffect(() => {
     if (window.google && !map && mapRef.current) {
       const defaultCenter = { lat: 34.0135, lng: -118.281 };
@@ -35,11 +38,12 @@ export default function SearchPage() {
     }
   }, [map]);
 
+  // Fetch criminals + geocode + take image_path directly
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase
         .from("criminal_info")
-        .select("id,name,address");
+        .select("id,name,address,image_path");
       if (error) {
         console.error("Supabase fetch error:", error);
         return;
@@ -47,18 +51,21 @@ export default function SearchPage() {
 
       const enriched = await Promise.all(
         data!.map(async (c) => {
+          // geocode address → { lat, lng }
           const res = await fetch("/api/geocode", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ address: c.address }),
           });
-          const json = await res.json();
+          const { lat, lng } = await res.json();
+
           return {
             id: c.id,
             name: c.name,
             address: c.address,
-            lat: json.lat,
-            lng: json.lng,
+            lat,
+            lng,
+            imageUrl: c.image_path || "/no-image.png",  // use DB URL
           } as Criminal;
         })
       );
@@ -84,7 +91,7 @@ export default function SearchPage() {
 
       const radiusInMeters = selectedRange * 1609.34;
 
-      // draw or update circle
+      // update or draw circle
       if (circle) {
         circle.setCenter(location);
         circle.setRadius(radiusInMeters);
@@ -102,7 +109,7 @@ export default function SearchPage() {
         setCircle(newCircle);
       }
 
-      // filter
+      // filter criminals in range
       const centreLatLng = new google.maps.LatLng(
         location.lat(),
         location.lng()
@@ -115,9 +122,8 @@ export default function SearchPage() {
         );
         return dist <= radiusInMeters;
       });
-      console.log("Criminals in range:", inRange);
 
-      // ─── Drop markers with boxed InfoWindows ───
+      // Drop markers with image in InfoWindow
       inRange.forEach((c) => {
         const marker = new google.maps.Marker({
           map,
@@ -134,36 +140,30 @@ export default function SearchPage() {
             max-width: 220px;
             font-family: Arial, sans-serif;
           ">
-            <h3 style="
-              margin: 0 0 6px;
-              font-size: 1.1rem;
-              color: #222;
-            ">${c.name}</h3>
-            <p style="
-              margin: 0;
-              font-size: 0.9rem;
-              color: #555;
-            ">${c.address}</p>
+            <img
+              src="${c.imageUrl}"
+              onerror="this.src='/no-image.png'"
+              style="width:100%;height:auto;object-fit:cover;border-radius:4px;margin-bottom:8px;"
+            />
+            <h3 style="margin:0 0 6px;font-size:1.1rem;color:#222;">${c.name}</h3>
+            <p style="margin:0;font-size:0.9rem;color:#555;">${c.address}</p>
           </div>
         `;
 
-        const infoWindow = new google.maps.InfoWindow({
-          content: infoHtml,
-        });
-
-        marker.addListener("click", () => infoWindow.open({ anchor: marker, map }));
+        const infoWindow = new google.maps.InfoWindow({ content: infoHtml });
+        marker.addListener("click", () =>
+          infoWindow.open({ anchor: marker, map })
+        );
       });
     });
   };
 
   return (
     <>
-
       <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=geometry`}
         strategy="beforeInteractive"
       />
-
       <div style={styles.pageContainer}>
         <header style={styles.header}>
           <h1 style={styles.headerTitle}>Crime Search</h1>
@@ -193,7 +193,6 @@ export default function SearchPage() {
             </div>
           </form>
         </header>
-
         <main style={styles.mainContent}>
           <div ref={mapRef} style={styles.mapContainer} />
         </main>
@@ -201,6 +200,7 @@ export default function SearchPage() {
     </>
   );
 }
+
 
 const styles: { [key: string]: React.CSSProperties } = {
   pageContainer: {
