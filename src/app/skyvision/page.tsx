@@ -14,7 +14,7 @@ export default function SkyVisionPage() {
 
   // Realtime toast subscription
   useEffect(() => {
-    console.log("📡 Setting up Supabase Realtime subscription…");
+    console.log(" Setting up Supabase Realtime subscription…");
 
     const channel = supabase
       .channel('public:alerts')
@@ -22,20 +22,20 @@ export default function SkyVisionPage() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'alerts' },
         (payload) => {
-          console.log('🔔 Realtime payload:', payload);
-          toast.success(`🚨 Criminal #${payload.new.criminal_id} detected!`);
+          console.log(' Realtime payload:', payload);
+          toast.success(` Criminal #${payload.new.criminal_id} detected!`);
         }
       )
       .subscribe((status, err) => {
         if (err) {
-          console.error('❌ Realtime subscribe error:', err);
+          console.error(' Realtime subscribe error:', err);
         } else {
-          console.log('✅ Realtime subscription status:', status);
+          console.log('Realtime subscription status:', status);
         }
       });
 
     return () => {
-      console.log('📴 Unsubscribing from Supabase Realtime');
+      console.log('Unsubscribing from Supabase Realtime');
       channel.unsubscribe();
     };
   }, []);
