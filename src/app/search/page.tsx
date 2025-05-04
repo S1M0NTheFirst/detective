@@ -11,7 +11,7 @@ type Criminal = {
   address: string;
   lat: number;
   lng: number;
-  imageUrl: string;   // direct URL from your DB
+  imageUrl: string;   
 };
 
 export default function SearchPage() {
@@ -65,7 +65,7 @@ export default function SearchPage() {
             address: c.address,
             lat,
             lng,
-            imageUrl: c.image_path || "/no-image.png",  // use DB URL
+            imageUrl: c.image_path,  // use DB URL
           } as Criminal;
         })
       );
